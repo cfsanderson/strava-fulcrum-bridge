@@ -96,24 +96,11 @@ This project lets you automatically receive new Strava activities (via webhook),
 
 ---
 
-## Notes & Security
-
-- **Never commit `.strava-tokens.json` or any secrets to your repository.**
-- Use environment variables for all secrets in production.
-- The `/exchange_token` endpoint is for OAuth only; `/strava-webhook` is for webhook events.
-- You can re-run the OAuth flow at any time to refresh your tokens.
-
----
-
 ## Troubleshooting
 
 - If you see `Token file .strava-tokens.json not found!` in logs, you must complete the OAuth flow in your production environment.
 - If you see `already exists` when registering the webhook, delete the old subscription and register again.
 - Check Render.com logs for errors if Fulcrum records are not created.
-
----
-
-For questions or help, open an issue or PR!
 
 ---
 
@@ -128,8 +115,6 @@ For questions or help, open an issue or PR!
 
 **Never commit your secret files!**  
 Add sensitive files to your `.gitignore` to keep them out of version control.
-
-For local development, use a tool like `ngrok` to create a secure tunnel to your local server.
 
 For production deployment on Render.com, follow best practices for securing your environment variables and access tokens.
 
