@@ -4,9 +4,13 @@ This project lets you automatically receive new Strava activities (via webhook),
 
 ---
 
-## 🚀 Onboarding
+## 🚀 Quick Start Guide
 
-Follow these steps to get up and running quickly:
+This project lets you automatically receive new Strava activities (via webhook), fetch their details, and create records in Fulcrum.
+
+---
+
+## Local Development Setup
 
 1. **Clone the repository:**
     ```sh
@@ -29,147 +33,87 @@ Follow these steps to get up and running quickly:
       cp .env.example .env
       # Edit .env and set STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, FULCRUM_API_TOKEN, FULCRUM_FORM_ID
       ```
-    - For production (Render.com), set these variables in the Render dashboard.
 
-5. **Deploy to Render.com (recommended for production):**
-    - Push your code to GitHub.
-    - Create a new Web Service on [Render.com](https://render.com/).
-    - Set the environment variables from your `.env` file in the Render dashboard.
-    - Render will auto-detect and run your app via the `Procfile`.
-    - After deploy, you’ll receive a public HTTPS URL (e.g., `https://your-app.onrender.com/strava-webhook`).
-
-6. **Register the Strava webhook:**
-    - Update your Strava webhook subscription to use your Render.com public URL.
-    - You can use the `strava-auth.sh` script, which now uses environment variables for all secrets.
-
-7. **Complete the Strava OAuth flow:**
-    - See the "Complete the Strava OAuth Flow" section below for details.
-
----
-
-## Setup
-
-### 1. Clone the Repo
-
-```sh
-git clone https://github.com/cfsanderson/strava-fulcrum-bridge.git
-cd strava-fulcrum-bridge
-```
-
-### 2. Install Requirements
-
-```sh
-python -m pip install flask requests polyline gpxpy
-```
-
-### 3. Create Strava API Application
-
--   Go to [https://www.strava.com/settings/api](https://www.strava.com/settings/api)
--   Register your app and note your **Client ID** and **Client Secret**.
-
-### 4. Set Environment Variables
-
-Set the following environment variables:
-
-*   `STRAVA_CLIENT_ID`
-*   `STRAVA_CLIENT_SECRET`
-*   `FULCRUM_API_TOKEN`
-*   `FULCRUM_FORM_ID`
-
-For local development, you can set these variables in your terminal or create a `.env` file. For production deployment on Render.com, set these variables in your Render.com dashboard.
-
-### 5. Local Quickstart (Recommended)
-
-For the fastest onboarding, use the provided quickstart script:
-
-```sh
-./quickstart.sh
-```
-
-This script will:
-- Install dependencies
-- Set up your environment (copy `.env.example` if needed)
-- Run basic tests
-- Register the Strava webhook (if `strava-auth.sh` is present)
-- Start the app with Gunicorn (production) or Flask (dev)
-
-If you prefer to run steps manually, see below.
-
-For manual local development:
-```sh
-python strava_webhook.py
-```
-
-For production deployment on Render.com, follow the instructions below.
-
-### 6. Deploy to Render.com
-
-1. Go to [Render.com](https://render.com/) and log in.
-2. Click "New +" → "Web Service".
-3. Connect your GitHub repo and select the `strava-fulcrum-bridge` repository.
-4. Configure the service:
-   - **Environment:** Python 3
-   - **Build Command:** *(leave blank; Render will use requirements.txt)*
-   - **Start Command:** `gunicorn strava_webhook:app`
-   - **Branch:** main (or your preferred branch)
-5. In the "Environment" section, add each variable from your `.env` file:
-   - `STRAVA_CLIENT_ID`
-   - `STRAVA_CLIENT_SECRET`
-   - `FULCRUM_API_TOKEN`
-   - `FULCRUM_FORM_ID`
-   - (Optional) `CALLBACK_URL`
-6. Click "Create Web Service" to deploy.
-7. Wait for the build to finish. You’ll see logs and a status bar. If the build fails, check logs for missing dependencies or typos.
-8. Copy your public URL (e.g., `https://your-app.onrender.com/strava-webhook`).
-
----
-
-### 7. After Deploying
-
-1. **Register your Strava webhook:**
-   - Set your callback URL to your Render.com public endpoint (e.g., `https://your-app.onrender.com/strava-webhook`).
-   - You can use the provided script:
-     ```sh
-     export CALLBACK_URL=https://your-app.onrender.com/strava-webhook
-     ./strava-auth.sh
-     ```
-   - Or register manually via the Strava API.
-
-2. **Complete the Strava OAuth flow:**
-   - Follow the "Complete the Strava OAuth Flow" section below to authorize your Strava account and obtain an access token.
-
-3. **Test your deployment:**
-   - Trigger a new activity in Strava.
-   - Confirm new records appear in Fulcrum.
-   - Check logs in the Render.com dashboard for any errors.
-
----
-
-### 7. Register the Webhook
-
-Edit and run `strava-api.sh` with your actual Render.com URL:
-
-```sh
-./strava-api.sh
-```
-
-### 8. Complete the Strava OAuth Flow
-
-1.  Build an authorize URL:
-    ```
-    https://www.strava.com/oauth/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=activity:read_all
-    ```
-2.  Open in your browser, log in, and click Authorize.
-3.  Copy the code from the redirect URL.
-4.  Exchange the code for an access token:
+5. **Run the quickstart script (recommended):**
     ```sh
-    curl -X POST https://www.strava.com/oauth/token \
-      -F client_id=YOUR_CLIENT_ID \
-      -F client_secret=YOUR_CLIENT_SECRET \
-      -F code=YOUR_CODE \
-      -F grant_type=authorization_code
+    ./quickstart.sh
     ```
-5.  Save your access token for use in API calls.
+    This will:
+    - Install dependencies
+    - Set up your environment
+    - Run basic tests
+    - Register the Strava webhook (if `strava-auth.sh` is present)
+    - Start the app
+
+6. **Complete the Strava OAuth flow:**
+    - Start your app locally (`python strava_webhook.py` or via quickstart)
+    - Open this URL in your browser (replace values as needed):
+      ```
+      https://www.strava.com/oauth/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=http://localhost:5055/exchange_token&approval_prompt=force&scope=activity:read_all
+      ```
+    - Authorize the app. The `/exchange_token` endpoint will handle the code exchange and save `.strava-tokens.json`.
+
+7. **Test locally:**
+    - Create a new Strava activity and confirm it triggers the webhook and creates a Fulcrum record.
+
+---
+
+## Production Deployment (Render.com)
+
+1. **Push your code to GitHub.**
+
+2. **Create a new Web Service on [Render.com](https://render.com/):**
+    - Connect your GitHub repo.
+    - Configure:
+      - **Environment:** Python 3
+      - **Build Command:** *(leave blank; Render will use requirements.txt)*
+      - **Start Command:** `gunicorn strava_webhook:app`
+      - **Branch:** main (or your preferred branch)
+    - Add environment variables from your `.env` file:
+      - `STRAVA_CLIENT_ID`
+      - `STRAVA_CLIENT_SECRET`
+      - `FULCRUM_API_TOKEN`
+      - `FULCRUM_FORM_ID`
+      - (Optional) `CALLBACK_URL`
+
+3. **Deploy and get your public URL** (e.g., `https://your-app.onrender.com`).
+
+4. **Register the Strava webhook:**
+    - Update your Strava webhook subscription to use your Render.com public URL (e.g., `https://your-app.onrender.com/strava-webhook`).
+    - You can use the `strava-auth.sh` script with the correct environment variables, or register manually via the Strava API.
+
+5. **Complete the Strava OAuth flow in production:**
+    - Open this URL (replace with your actual values):
+      ```
+      https://www.strava.com/oauth/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=https://your-app.onrender.com/exchange_token&approval_prompt=force&scope=activity:read_all
+      ```
+    - Authorize the app. The `/exchange_token` endpoint will handle the code exchange and save `.strava-tokens.json` on your Render.com server.
+
+6. **Test your deployment:**
+    - Create a new Strava activity.
+    - Confirm records appear in Fulcrum.
+    - Check logs in the Render.com dashboard for any errors.
+
+---
+
+## Notes & Security
+
+- **Never commit `.strava-tokens.json` or any secrets to your repository.**
+- Use environment variables for all secrets in production.
+- The `/exchange_token` endpoint is for OAuth only; `/strava-webhook` is for webhook events.
+- You can re-run the OAuth flow at any time to refresh your tokens.
+
+---
+
+## Troubleshooting
+
+- If you see `Token file .strava-tokens.json not found!` in logs, you must complete the OAuth flow in your production environment.
+- If you see `already exists` when registering the webhook, delete the old subscription and register again.
+- Check Render.com logs for errors if Fulcrum records are not created.
+
+---
+
+For questions or help, open an issue or PR!
 
 ---
 
