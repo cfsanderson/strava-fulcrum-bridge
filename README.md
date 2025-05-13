@@ -104,12 +104,46 @@ For production deployment on Render.com, follow the instructions below.
 
 ### 6. Deploy to Render.com
 
-1.  Create a new Render.com service and select "Web Service".
-2.  Connect your GitHub repository and select the branch you want to deploy.
-3.  Set the environment variables in the Render.com dashboard.
-4.  Set the build command to `python strava_webhook.py`.
-5.  Set the start command to `gunicorn strava_webhook:app`.
-6.  Click "Create Web Service" to deploy your application.
+1. Go to [Render.com](https://render.com/) and log in.
+2. Click "New +" → "Web Service".
+3. Connect your GitHub repo and select the `strava-fulcrum-bridge` repository.
+4. Configure the service:
+   - **Environment:** Python 3
+   - **Build Command:** *(leave blank; Render will use requirements.txt)*
+   - **Start Command:** `gunicorn strava_webhook:app`
+   - **Branch:** main (or your preferred branch)
+5. In the "Environment" section, add each variable from your `.env` file:
+   - `STRAVA_CLIENT_ID`
+   - `STRAVA_CLIENT_SECRET`
+   - `FULCRUM_API_TOKEN`
+   - `FULCRUM_FORM_ID`
+   - (Optional) `CALLBACK_URL`
+6. Click "Create Web Service" to deploy.
+7. Wait for the build to finish. You’ll see logs and a status bar. If the build fails, check logs for missing dependencies or typos.
+8. Copy your public URL (e.g., `https://your-app.onrender.com/strava-webhook`).
+
+---
+
+### 7. After Deploying
+
+1. **Register your Strava webhook:**
+   - Set your callback URL to your Render.com public endpoint (e.g., `https://your-app.onrender.com/strava-webhook`).
+   - You can use the provided script:
+     ```sh
+     export CALLBACK_URL=https://your-app.onrender.com/strava-webhook
+     ./strava-auth.sh
+     ```
+   - Or register manually via the Strava API.
+
+2. **Complete the Strava OAuth flow:**
+   - Follow the "Complete the Strava OAuth Flow" section below to authorize your Strava account and obtain an access token.
+
+3. **Test your deployment:**
+   - Trigger a new activity in Strava.
+   - Confirm new records appear in Fulcrum.
+   - Check logs in the Render.com dashboard for any errors.
+
+---
 
 ### 7. Register the Webhook
 
