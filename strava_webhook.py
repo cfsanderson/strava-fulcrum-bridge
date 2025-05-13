@@ -7,6 +7,32 @@ import time
 
 app = Flask(__name__)
 
+# --- OAuth Exchange Endpoint ---
+@app.route('/exchange_token')
+def exchange_token():
+    code = request.args.get('code')
+    if not code:
+        return "No code provided", 400
+    client_id = os.environ.get('STRAVA_CLIENT_ID')
+    client_secret = os.environ.get('STRAVA_CLIENT_SECRET')
+    callback_url = os.environ.get('CALLBACK_URL')
+    resp = requests.post(
+        "https://www.strava.com/oauth/token",
+        data={
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'code': code,
+            'grant_type': 'authorization_code'
+        }
+    )
+    if resp.status_code != 200:
+        return f"Token exchange failed: {resp.text}", 400
+    token_data = resp.json()
+    # Save to .strava-tokens.json
+    with open('.strava-tokens.json', 'w') as f:
+        json.dump(token_data, f)
+    return jsonify({"success": True, "token_data": token_data})
+
 # --- Utility functions to read secrets/config ---
 
 def read_strava_tokens():
