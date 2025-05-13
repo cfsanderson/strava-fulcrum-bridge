@@ -1,0 +1,6 @@
+secrets.json
+.strava-tokens.json
+*.pyc
+__pycache__/
+.env
+
