@@ -57,6 +57,7 @@ This project lets you automatically receive new Strava activities (via webhook),
     - Create a new Strava activity and confirm it triggers the webhook and creates a Fulcrum record.
 
 ---
+TODO: Set up a home server with a Raspberry Pi
 
 ## Production Deployment (Render.com)
 
