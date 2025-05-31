@@ -15,14 +15,19 @@ def exchange_token():
         return "No code provided", 400
     client_id = os.environ.get('STRAVA_CLIENT_ID')
     client_secret = os.environ.get('STRAVA_CLIENT_SECRET')
-    callback_url = os.environ.get('CALLBACK_URL')
+    token_exchange_redirect_uri = os.environ.get('CALLBACK_URL')
+
+    if not token_exchange_redirect_uri:
+        return "CALLBACK_URL not set in environment", 500 # Or handle error appropriately
+
     resp = requests.post(
         "https://www.strava.com/oauth/token",
         data={
             'client_id': client_id,
             'client_secret': client_secret,
             'code': code,
-            'grant_type': 'authorization_code'
+            'grant_type': 'authorization_code',
+            'redirect_uri': token_exchange_redirect_uri  # THIS IS THE ADDED/MODIFIED LINE
         }
     )
     if resp.status_code != 200:

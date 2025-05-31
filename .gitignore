@@ -3,4 +3,4 @@ secrets.json
 *.pyc
 __pycache__/
 .env
-
+venv/
