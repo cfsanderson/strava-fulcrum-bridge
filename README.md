@@ -294,3 +294,4 @@ This step populates `.strava-tokens.json`.
 *   The `quickstart.sh` script attempts to run `pytest` and register webhooks. The `pytest` step may fail if `pytest` isn't installed (it's not in `requirements.txt`). The webhook registration in `quickstart.sh` might fail due to Gunicorn not being ready; rely on the manual `strava-auth.sh` execution for initial setup.
 *   For true production use, consider setting up a reverse proxy (like Nginx or Caddy) to handle HTTPS/SSL for your DuckDNS endpoint.
 *   Keep all your API tokens and secrets secure in the `.env` file and ensure `.env` is in your `.gitignore`.
+
