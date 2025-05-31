@@ -295,3 +295,112 @@ This step populates `.strava-tokens.json`.
 *   For true production use, consider setting up a reverse proxy (like Nginx or Caddy) to handle HTTPS/SSL for your DuckDNS endpoint.
 *   Keep all your API tokens and secrets secure in the `.env` file and ensure `.env` is in your `.gitignore`.
 
+---
+
+## Server Management & Maintenance
+
+Once the `strava-bridge.service` is set up and running with `systemd`, you can manage it and perform routine maintenance using the following commands via SSH on your Raspberry Pi.
+
+### Checking Server Status
+
+*   **Check the current status of the service:**
+    ```bash
+    sudo systemctl status strava-bridge.service
+    ```
+    Look for `Active: active (running)`. Press `q` to exit the status view.
+
+*   **View live logs from the service:**
+    ```bash
+    sudo journalctl -u strava-bridge.service -f
+    ```
+    Press `Ctrl+C` to stop following the logs.
+
+*   **View all logs for the service:**
+    ```bash
+    sudo journalctl -u strava-bridge.service
+    ```
+    You can navigate this with arrow keys, Page Up/Down. Press `q` to exit. To see logs since the last boot:
+    ```bash
+    sudo journalctl -u strava-bridge.service -b
+    ```
+
+### Managing the Service
+
+*   **Start the service (if it's stopped):**
+    ```bash
+    sudo systemctl start strava-bridge.service
+    ```
+
+*   **Stop the service:**
+    ```bash
+    sudo systemctl stop strava-bridge.service
+    ```
+
+*   **Restart the service (e.g., after making code changes or updating `.env`):**
+    ```bash
+    sudo systemctl restart strava-bridge.service
+    ```
+    *Note: If you only change the `.env` file, a restart is usually sufficient. If you change the Python code (`strava_webhook.py`) or `requirements.txt`, you'll need to pull changes (if applicable) and then restart the service.*
+
+*   **Check if the service is enabled to start on boot:**
+    ```bash
+    sudo systemctl is-enabled strava-bridge.service
+    ```
+    (Should output `enabled`)
+
+### Updating the Application Code
+
+If you've made changes to the application code in your Git repository (or if you're pulling updates from the original repository if you forked it):
+
+1.  **SSH into your Raspberry Pi.**
+2.  **Navigate to the project directory:**
+    ```bash
+    cd /home/caleb/Projects/strava-fulcrum-bridge # Or your project path
+    ```
+3.  **(Optional) Stop the service before updating (good practice):**
+    ```bash
+    sudo systemctl stop strava-bridge.service
+    ```
+4.  **Pull the latest changes from your Git repository:**
+    ```bash
+    git pull origin main # Or your default branch name
+    ```
+5.  **Activate the virtual environment:**
+    ```bash
+    source venv/bin/activate
+    ```
+6.  **(If applicable) Update Python dependencies if `requirements.txt` has changed:**
+    ```bash
+    (venv) pip install -r requirements.txt
+    ```
+7.  **Deactivate the virtual environment (optional, but good to exit if done):**
+    ```bash
+    (venv) deactivate
+    ```
+8.  **Restart the service to apply changes:**
+    ```bash
+    sudo systemctl restart strava-bridge.service
+    ```
+9.  **Check the status and logs to ensure it started correctly.**
+
+### System Maintenance (Raspberry Pi OS)
+
+It's important to keep your Raspberry Pi's operating system and packages up to date for security and stability.
+
+1.  **Update package lists and upgrade installed packages periodically (e.g., monthly):**
+    ```bash
+    sudo apt update
+    sudo apt full-upgrade -y
+    ```
+2.  **Reboot if necessary:** Some updates (like kernel updates) may require a reboot. The system will usually inform you if a reboot is needed.
+    ```bash
+    sudo reboot
+    ```
+    Your `strava-bridge.service` should automatically start after the reboot if it's enabled.
+
+### Checking Disk Space
+
+If the application generates significant logs or stores other data, occasionally check disk space:
+```bash
+df -h
+
