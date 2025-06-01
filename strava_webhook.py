@@ -160,14 +160,14 @@ def build_fulcrum_payload(activity, geojson):
         "cca0": activity.get("start_date_local", "")[11:19],
         "0880": activity.get("elapsed_time"),
         "2180": activity.get("moving_time"),
-        "notes": activity.get("description"),
+        "e2d0": activity.get("description"),
         "4840": meters_to_feet(activity.get("total_elevation_gain")),
         "d000": meters_to_feet(activity.get("elev_low")),
         "6767": meters_to_feet(activity.get("elev_high")),
         "3350": celsius_to_fahrenheit(activity.get("average_temp")),
-        "min_temp": None,
-        "max_temp": None,
-        "aerobic_te": None,
+        "8f50": None, #min temp
+        "5270": None, #max temp
+        "446e": None, #aerobic TE
     }
     # Convert all non-None values to strings (Fulcrum expects string values)
     form_values = {k: str(v) for k, v in form_values.items() if v is not None}
