@@ -151,6 +151,15 @@ def round_or_none(value):
         return None
     return round(value)
 
+def seconds_to_hms(seconds):
+    if seconds is None:
+        return None
+    seconds = int(seconds)
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+    return f"{hours}:{minutes:02d}:{secs:02d}"
+
 def build_fulcrum_payload(activity, geojson):
     # Update these keys to match your Fulcrum Data Names exactly (Imperial units and correct conversions)
     form_values = {
@@ -163,8 +172,8 @@ def build_fulcrum_payload(activity, geojson):
         "2050": round_or_none(activity.get("average_heartrate")),
         "4c8d": round_or_none(activity.get("max_heartrate")),
         "cca0": activity.get("start_date_local", "")[11:19],
-        "0880": activity.get("elapsed_time"),
-        "2180": activity.get("moving_time"),
+        "0880": seconds_to_hms(activity.get("elapsed_time")),
+        "2180": seconds_to_hms(activity.get("moving_time")),
         "e2d0": activity.get("description"),
         "4840": round_or_none(meters_to_feet(activity.get("total_elevation_gain"))),
         "d000": round_or_none(meters_to_feet(activity.get("elev_low"))),
