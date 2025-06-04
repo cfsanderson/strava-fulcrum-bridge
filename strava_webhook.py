@@ -146,6 +146,11 @@ def seconds_per_km(activity):
 
 # TODO 
 # - average pace and average HR do not match Garmin
+def round_or_none(value):
+    if value is None:
+        return None
+    return round(value)
+
 def build_fulcrum_payload(activity, geojson):
     # Update these keys to match your Fulcrum Data Names exactly (Imperial units and correct conversions)
     form_values = {
@@ -153,17 +158,17 @@ def build_fulcrum_payload(activity, geojson):
         "2d48": activity.get("start_date_local", "")[:10],
         "3200": activity.get("type"),
         "9000": meters_to_miles(activity.get("distance")),
-        "b890": activity.get("calories"),
+        "b890": round_or_none(activity.get("calories")),
         "1acf": seconds_per_mile(activity),  # min/mile
-        "2050": activity.get("average_heartrate"),
-        "4c8d": activity.get("max_heartrate"),
+        "2050": round_or_none(activity.get("average_heartrate")),
+        "4c8d": round_or_none(activity.get("max_heartrate")),
         "cca0": activity.get("start_date_local", "")[11:19],
         "0880": activity.get("elapsed_time"),
         "2180": activity.get("moving_time"),
         "e2d0": activity.get("description"),
-        "4840": meters_to_feet(activity.get("total_elevation_gain")),
-        "d000": meters_to_feet(activity.get("elev_low")),
-        "6767": meters_to_feet(activity.get("elev_high")),
+        "4840": round_or_none(meters_to_feet(activity.get("total_elevation_gain"))),
+        "d000": round_or_none(meters_to_feet(activity.get("elev_low"))),
+        "6767": round_or_none(meters_to_feet(activity.get("elev_high"))),
         "3350": celsius_to_fahrenheit(activity.get("average_temp")),
         "8f50": None, #min temp
         "5270": None, #max temp
