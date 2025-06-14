@@ -53,29 +53,86 @@ def write_strava_tokens(tokens):
     with open('.strava-tokens.json', 'w') as f:
         json.dump(tokens, f)
 
-def get_valid_access_token():
-    tokens = read_strava_tokens()
-    if time.time() > tokens['expires_at'] - 60:
-        print("Refreshing Strava access token...")
-        resp = requests.post(
-            "https://www.strava.com/oauth/token",
-            data={
-                "client_id": os.environ.get("STRAVA_CLIENT_ID"),
-                "client_secret": os.environ.get("STRAVA_CLIENT_SECRET"),
-                "grant_type": "refresh_token",
-                "refresh_token": tokens['refresh_token']
+def get_valid_access_token(max_retries=3):
+    """Get a valid access token, refreshing if necessary.
+    
+    Args:
+        max_retries: Maximum number of refresh attempts before giving up
+        
+    Returns:
+        str: A valid access token
+        
+    Raises:
+        Exception: If token refresh fails after max_retries
+    """
+    for attempt in range(max_retries):
+        try:
+            tokens = read_strava_tokens()
+            current_time = time.time()
+            
+            # If token is still valid for at least 5 minutes, return it
+            if current_time < tokens.get('expires_at', 0) - 300:  # 5 minute buffer
+                return tokens['access_token']
+                
+            print(f"Access token expired or expiring soon. Refreshing (attempt {attempt + 1}/{max_retries})...")
+            
+            # Prepare refresh request
+            refresh_data = {
+                'client_id': os.environ.get("STRAVA_CLIENT_ID"),
+                'client_secret': os.environ.get("STRAVA_CLIENT_SECRET"),
+                'grant_type': 'refresh_token',
+                'refresh_token': tokens.get('refresh_token')
             }
-        )
-        if resp.status_code == 200:
-            new_tokens = resp.json()
-            tokens['access_token'] = new_tokens['access_token']
-            tokens['refresh_token'] = new_tokens['refresh_token']
-            tokens['expires_at'] = new_tokens['expires_at']
-            write_strava_tokens(tokens)
-        else:
-            print("Failed to refresh token:", resp.text)
-            raise Exception("Strava token refresh failed")
-    return tokens['access_token']
+            
+            # Make the refresh request with timeout
+            resp = requests.post(
+                "https://www.strava.com/oauth/token",
+                data=refresh_data,
+                timeout=10  # 10 second timeout
+            )
+            
+            # Check for successful response
+            if resp.status_code == 200:
+                new_tokens = resp.json()
+                # Update tokens with new values
+                tokens.update({
+                    'access_token': new_tokens['access_token'],
+                    'refresh_token': new_tokens.get('refresh_token', tokens['refresh_token']),  # Keep old refresh token if not provided
+                    'expires_at': new_tokens['expires_at'],
+                    'expires_in': new_tokens['expires_in']
+                })
+                write_strava_tokens(tokens)
+                print("Successfully refreshed access token")
+                return tokens['access_token']
+                
+            # Handle specific error cases
+            elif resp.status_code in [400, 401]:
+                error_msg = resp.json().get('message', 'Unknown error')
+                if 'Invalid refresh token' in error_msg or 'Authorization Error' in error_msg:
+                    print("Refresh token is invalid. Manual re-authentication required.")
+                    break
+                print(f"Token refresh failed (attempt {attempt + 1}): {error_msg}")
+            else:
+                print(f"Unexpected status code {resp.status_code} during token refresh")
+                
+        except requests.exceptions.RequestException as e:
+            print(f"Network error during token refresh (attempt {attempt + 1}): {str(e)}")
+        except json.JSONDecodeError:
+            print(f"Invalid JSON response during token refresh (attempt {attempt + 1})")
+        except KeyError as e:
+            print(f"Missing expected key in token response (attempt {attempt + 1}): {str(e)}")
+            break  # No point retrying if response is malformed
+            
+        # Exponential backoff before retry (1s, 2s, 4s, etc.)
+        if attempt < max_retries - 1:
+            backoff = 2 ** attempt
+            print(f"Retrying in {backoff} seconds...")
+            time.sleep(backoff)
+    
+    # If we get here, all retries failed
+    error_msg = "Failed to refresh access token after maximum retries. Manual intervention required."
+    print(error_msg)
+    raise Exception(error_msg)
 
 FULCRUM_FORM_ID = os.environ.get("FULCRUM_FORM_ID")
 
