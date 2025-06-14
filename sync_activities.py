@@ -107,13 +107,21 @@ def sync_activities(count=1, days_back=30):
             payload = build_fulcrum_payload(full_activity, geojson)
             
             print(f"  Sending to Fulcrum...")
-            response = create_fulcrum_record(payload, FULCRUM_FORM_ID)
+            fulcrum_form_id = os.environ.get("FULCRUM_FORM_ID")
+            if not fulcrum_form_id:
+                print("  ✗ Error: FULCRUM_FORM_ID not found in environment variables")
+                continue
+                
+            print(f"  Using Fulcrum form ID: {fulcrum_form_id}")
+            response = create_fulcrum_record(payload, fulcrum_form_id)
             
-            if response.status_code == 201:
+            if response and hasattr(response, 'status_code') and response.status_code == 201:
                 print(f"  ✓ Successfully synced to Fulcrum")
             else:
-                print(f"  ✗ Failed to sync to Fulcrum (Status: {response.status_code})")
-                print(f"  Response: {response.text}")
+                status = getattr(response, 'status_code', 'No response')
+                print(f"  ✗ Failed to sync to Fulcrum (Status: {status})")
+                if hasattr(response, 'text'):
+                    print(f"  Response: {response.text}")
             
         except Exception as e:
             print(f"  Error processing activity: {str(e)}")
