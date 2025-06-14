@@ -297,6 +297,74 @@ This step populates `.strava-tokens.json`.
 
 ---
 
+## Manual Activity Sync
+
+In addition to the automatic webhook-based sync, you can use the `sync_activities.py` script to manually sync activities from Strava to Fulcrum. This is useful for backfilling historical data or syncing specific activities.
+
+### Prerequisites
+
+1. Ensure you have the required Python package installed:
+   ```bash
+   source venv/bin/activate
+   pip install inquirer
+   ```
+
+### Basic Usage
+
+1. **Interactive Mode** (Recommended):
+   ```bash
+   python3 sync_activities.py -i
+   ```
+   - Shows an interactive menu of recent activities
+   - Use arrow keys to navigate
+   - Press space to select/deselect activities
+   - Press enter to confirm selection
+   - Type 'y' to confirm sync
+
+2. **Sync Specific Number of Recent Activities**
+   ```bash
+   # Sync the 5 most recent activities
+   python3 sync_activities.py 5
+   ```
+
+3. **Change the Lookback Period**
+   ```bash
+   # Show activities from the last 60 days
+   python3 sync_activities.py -i --days 60
+   ```
+
+4. **Non-Interactive Mode**
+   ```bash
+   # Sync the 3 most recent activities from the last 30 days
+   python3 sync_activities.py 3
+   ```
+
+### Features
+
+- **Duplicate Prevention**: Automatically skips activities that already exist in Fulcrum
+- **Detailed Logging**: See exactly what's happening during the sync process
+- **Flexible Date Ranges**: Specify how far back to look for activities
+- **Activity Selection**: Choose exactly which activities to sync
+
+### Common Use Cases
+
+1. **Backfilling Historical Data**:
+   ```bash
+   # Show activities from the last year
+   python3 sync_activities.py -i --days 365
+   ```
+
+2. **Syncing a Specific Activity**:
+   - Use interactive mode to select just the activity you want
+   - Or use the non-interactive mode with a count of 1 for the most recent activity
+
+3. **Regular Manual Syncs**:
+   - Create a cron job to run the script periodically
+   - Example (runs at 2 AM daily):
+     ```
+     0 2 * * * cd /path/to/strava-fulcrum-bridge && /path/to/venv/bin/python3 sync_activities.py 10
+     ```
+
 ## Server Management & Maintenance
 
 Once the `strava-bridge.service` is set up and running with `systemd`, you can manage it and perform routine maintenance using the following commands via SSH on your Raspberry Pi.
