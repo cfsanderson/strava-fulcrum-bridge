@@ -57,14 +57,17 @@ def sync_activities(count=1, days_back=30):
     """Sync recent activities to Fulcrum.
     
     Args:
-        count: Number of recent activities to sync (max 200)
-        days_back: Only sync activities from the last N days
+        count: Number of recent activities to sync (default: 1, max 200)
+        days_back: Only sync activities from the last N days (default: 30)
     """
     # Calculate timestamps
     now = int(datetime.now().timestamp())
     after_time = int((datetime.now() - timedelta(days=days_back)).timestamp())
     
-    print(f"Fetching up to {count} activities from the last {days_back} days...")
+    if count == 1:
+        print(f"Fetching the most recent activity from the last {days_back} days...")
+    else:
+        print(f"Fetching the {count} most recent activities from the last {days_back} days...")
     activities = fetch_recent_activities(count=count, after=after_time)
     
     if not activities:
