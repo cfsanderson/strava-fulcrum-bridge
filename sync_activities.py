@@ -12,13 +12,28 @@ import sys
 import json
 import requests
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+def debug_environment():
+    """Print debug information about the environment."""
+    print("\n==== Environment Debug ====")
+    print(f"Current directory: {os.getcwd()}")
+    print(f"Environment file exists: {os.path.exists('.env')}")
+    print("FULCRUM_API_TOKEN present:", "FULCRUM_API_TOKEN" in os.environ)
+    print("FULCRUM_FORM_ID present:", "FULCRUM_FORM_ID" in os.environ)
+    print("STRAVA_CLIENT_ID present:", "STRAVA_CLIENT_ID" in os.environ)
+    print("STRAVA_CLIENT_SECRET present:", "STRAVA_CLIENT_SECRET" in os.environ)
+    print("STRAVA_REFRESH_TOKEN present:", "STRAVA_REFRESH_TOKEN" in os.environ)
+
+# Load environment variables from .env file
+load_dotenv()
+
 from strava_webhook import (
     get_valid_access_token,
     fetch_activity,
     get_geojson_linestring,
     build_fulcrum_payload,
     create_fulcrum_record,
-    FULCRUM_FORM_ID
 )
 
 def fetch_recent_activities(count=1, before=None, after=None):
@@ -57,17 +72,14 @@ def sync_activities(count=1, days_back=30):
     """Sync recent activities to Fulcrum.
     
     Args:
-        count: Number of recent activities to sync (default: 1, max 200)
-        days_back: Only sync activities from the last N days (default: 30)
+        count: Number of recent activities to sync (max 200)
+        days_back: Only sync activities from the last N days
     """
     # Calculate timestamps
     now = int(datetime.now().timestamp())
     after_time = int((datetime.now() - timedelta(days=days_back)).timestamp())
     
-    if count == 1:
-        print(f"Fetching the most recent activity from the last {days_back} days...")
-    else:
-        print(f"Fetching the {count} most recent activities from the last {days_back} days...")
+    print(f"Fetching up to {count} activities from the last {days_back} days...")
     activities = fetch_recent_activities(count=count, after=after_time)
     
     if not activities:
@@ -107,6 +119,7 @@ def sync_activities(count=1, days_back=30):
             print(f"  Error processing activity: {str(e)}")
 
 def main():
+    debug_environment()
     # Parse command line arguments
     count = 1  # Default to syncing just the most recent activity
     
