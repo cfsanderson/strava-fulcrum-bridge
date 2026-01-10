@@ -4,3 +4,4 @@ secrets.json
 __pycache__/
 .env
 venv/
+*.log

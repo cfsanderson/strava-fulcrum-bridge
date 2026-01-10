@@ -365,6 +365,69 @@ In addition to the automatic webhook-based sync, you can use the `sync_activitie
      0 2 * * * cd /path/to/strava-fulcrum-bridge && /path/to/venv/bin/python3 sync_activities.py 10
      ```
 
+## Important Note: Garmin Connect and Webhook Limitations
+
+**If you sync activities from Garmin Connect (or other third-party apps) to Strava, the webhook system will NOT trigger automatically.**
+
+Strava's webhook events only fire for:
+- Activities created directly on Strava
+- Manual uploads to Strava
+- Activities created via Strava's mobile app
+
+**Activities imported from Garmin Connect, Garmin watches, or other third-party services bypass the webhook system by design.** This is a Strava API limitation, not a bug in this application.
+
+### Solution: Automatic Hourly Sync
+
+To work around this limitation, an automatic hourly sync has been configured using a cron job:
+
+**Cron Job Configuration:**
+```bash
+# Syncs the most recent activity every hour
+0 * * * * cd /home/caleb/Projects/strava-fulcrum-bridge && /home/caleb/Projects/strava-fulcrum-bridge/venv/bin/python3 sync_activities.py 1 --days 1 >> /home/caleb/Projects/strava-fulcrum-bridge/sync_cron.log 2>&1
+```
+
+**What it does:**
+- Runs every hour at the top of the hour (:00)
+- Syncs the most recent activity from the last 24 hours
+- Logs all output to `sync_cron.log` in the project directory
+- Very lightweight on system resources (just a few API calls)
+
+**Monitoring the automatic sync:**
+```bash
+# View recent sync logs
+tail -20 ~/Projects/strava-fulcrum-bridge/sync_cron.log
+
+# Watch live sync activity
+tail -f ~/Projects/strava-fulcrum-bridge/sync_cron.log
+
+# Check when next sync will run
+crontab -l
+```
+
+### Manual Sync Alias
+
+For immediate syncing after a workout, a bash alias has been created for convenience:
+
+**Usage:**
+```bash
+stravasync 1    # Sync 1 most recent activity
+stravasync 5    # Sync 5 most recent activities
+stravasync 10   # Sync 10 most recent activities
+```
+
+**Implementation:**
+The `stravasync` alias is defined in `~/.bash_aliases` and uses the `strava_sync.sh` wrapper script:
+- Location: `~/Projects/strava-fulcrum-bridge/strava_sync.sh`
+- Takes a single argument: number of recent activities to sync
+- Looks back 30 days for activities
+- Can be used from any directory via SSH
+
+**Adding the alias to a new session:**
+If you open a new SSH session and `stravasync` is not recognized:
+```bash
+source ~/.bashrc
+```
+
 ## Server Management & Maintenance
 
 Once the `strava-bridge.service` is set up and running with `systemd`, you can manage it and perform routine maintenance using the following commands via SSH on your Raspberry Pi.
