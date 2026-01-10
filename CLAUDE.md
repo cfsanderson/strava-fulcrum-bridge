@@ -377,7 +377,7 @@ When making changes:
 - `README.md` - Complete setup guide
 - `CLAUDE.md` - This file (development guide)
 - `.env.example` - Example environment configuration
-- `RUN Fulcrum App Builder.fulcrumapp` - Template Fulcrum form
+- `run_fulcrum_app_builder.fulcrumapp` - Template Fulcrum form
 
 ### Logs
 - `sync_cron.log` - Automatic hourly sync logs

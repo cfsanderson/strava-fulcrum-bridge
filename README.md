@@ -2,7 +2,7 @@
 
 This guide details how to set up and run an "always-on" server on a Raspberry Pi. This setup uses DuckDNS for dynamic IP handling, port forwarding, and `systemd` for robust service management.
 
-The primary goal is to have a personal server that listens for Strava webhook events (new activities) and then pushes processed data to a specified Fulcrumapp.com form. The main use case is to capture data from running activities so the script also transforms the Garmin/Strava GPX data into usable GeoJSON for Fulcrum. Any Strava activity will be synced (e.g. strength training, yoga, cycling, etc.) but the Fulcrum form should be built to receive the inputs. The `./RUN Fulcrum App.fulcrumapp` file is included as a template Fulcrum form.
+The primary goal is to have a personal server that listens for Strava webhook events (new activities) and then pushes processed data to a specified Fulcrumapp.com form. The main use case is to capture data from running activities so the script also transforms the Garmin/Strava GPX data into usable GeoJSON for Fulcrum. Any Strava activity will be synced (e.g. strength training, yoga, cycling, etc.) but the Fulcrum form should be built to receive the inputs. The `run_fulcrum_app_builder.fulcrumapp` file is included as a template Fulcrum form.
 
 ## Prerequisites
 
