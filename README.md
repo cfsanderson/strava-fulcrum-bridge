@@ -4,6 +4,8 @@ This guide details how to set up and run an "always-on" server on a Raspberry Pi
 
 The primary goal is to have a personal server that listens for Strava webhook events (new activities) and then pushes processed data to a specified Fulcrumapp.com form. The main use case is to capture data from running activities so the script also transforms the Garmin/Strava GPX data into usable GeoJSON for Fulcrum. Any Strava activity will be synced (e.g. strength training, yoga, cycling, etc.) but the Fulcrum form should be built to receive the inputs. The `run_fulcrum_app_builder.fulcrumapp` file is included as a template Fulcrum form.
 
+**Important:** Your Fulcrum form must include a text field with data name `strava_activity_id` for duplicate detection to work properly. This field stores the unique Strava activity ID and prevents the same activity from being synced multiple times.
+
 ## Prerequisites
 
 ### Hardware
@@ -159,6 +161,18 @@ The primary goal is to have a personal server that listens for Strava webhook ev
     )
     # ...
     ```
+
+4.  **Configure Fulcrum Form:**
+    *   In your Fulcrum form, ensure you have a **Text Field** with the data name `strava_activity_id`.
+    *   This field is required for duplicate detection to work properly.
+    *   To add this field:
+        1. Go to your Fulcrum form builder
+        2. Add a new "Text Field" (single line)
+        3. Set the label to "Strava Activity ID" or similar
+        4. The data name should automatically be set to `strava_activity_id`
+        5. This field can be non-required since existing records won't have it
+    *   The application will automatically populate this field with the Strava activity ID for each synced activity.
+    *   Without this field, the duplicate detection will not work and activities may be synced multiple times.
 
 ### Phase 6: Obtaining Initial Strava OAuth Tokens (First Run Only)
 
@@ -341,10 +355,11 @@ In addition to the automatic webhook-based sync, you can use the `sync_activitie
 
 ### Features
 
-- **Duplicate Prevention**: Automatically skips activities that already exist in Fulcrum
+- **Duplicate Prevention**: Automatically skips activities that already exist in Fulcrum by checking the `strava_activity_id` field
 - **Detailed Logging**: See exactly what's happening during the sync process
 - **Flexible Date Ranges**: Specify how far back to look for activities
 - **Activity Selection**: Choose exactly which activities to sync
+- **Smart Syncing**: Queries all existing Fulcrum records to ensure no duplicates are created
 
 ### Common Use Cases
 
@@ -389,6 +404,7 @@ To work around this limitation, an automatic hourly sync has been configured usi
 **What it does:**
 - Runs every hour at the top of the hour (:00)
 - Syncs the most recent activity from the last 24 hours
+- Automatically skips activities that already exist in Fulcrum (duplicate detection)
 - Logs all output to `sync_cron.log` in the project directory
 - Very lightweight on system resources (just a few API calls)
 
@@ -534,4 +550,60 @@ It's important to keep your Raspberry Pi's operating system and packages up to d
 If the application generates significant logs or stores other data, occasionally check disk space:
 ```bash
 df -h
+```
+
+## Troubleshooting
+
+### Duplicate Activities in Fulcrum
+
+If you're seeing duplicate activities being created in Fulcrum:
+
+1.  **Check for the `strava_activity_id` field:**
+    - Log in to Fulcrum and open your form in the form builder
+    - Verify there's a text field with data name `strava_activity_id`
+    - If missing, add it as described in Phase 5, step 4
+
+2.  **Verify the field ID in the code:**
+    - The application expects the field to have data name `strava_activity_id`
+    - The internal field ID (key) will be automatically discovered by the Fulcrum API
+    - If you named the field something different, update `strava_webhook.py` and `sync_activities.py`
+
+3.  **Test duplicate detection:**
+    ```bash
+    cd ~/Projects/strava-fulcrum-bridge
+    source venv/bin/activate
+    python3 sync_activities.py 1 --days 1
+    ```
+    - Run this command twice
+    - The first time should sync the activity
+    - The second time should skip it with message: "✓ Already exists in Fulcrum - skipping"
+
+4.  **Restart the service after changes:**
+    ```bash
+    sudo systemctl restart strava-bridge.service
+    ```
+
+### Cron Job Not Running
+
+If the automatic hourly sync isn't working:
+
+1.  **Check crontab:**
+    ```bash
+    crontab -l
+    ```
+    - Verify the cron job includes `cd /home/caleb/Projects/strava-fulcrum-bridge &&` before the python command
+    - The path should change to the project directory before running
+
+2.  **Check cron logs:**
+    ```bash
+    tail -50 ~/Projects/strava-fulcrum-bridge/sync_cron.log
+    ```
+    - Look for error messages or "No such file or directory" errors
+    - Verify activities are being detected and synced/skipped appropriately
+
+3.  **Test the command manually:**
+    ```bash
+    cd ~/Projects/strava-fulcrum-bridge && ~/Projects/strava-fulcrum-bridge/venv/bin/python3 sync_activities.py 1 --days 1
+    ```
+    - If this works but cron doesn't, check your crontab syntax
 

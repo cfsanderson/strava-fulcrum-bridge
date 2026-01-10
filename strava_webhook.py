@@ -235,7 +235,8 @@ def build_fulcrum_payload(activity, geojson):
         "4840": round_or_none(meters_to_feet(activity.get("total_elevation_gain"))),
         "d000": round_or_none(meters_to_feet(activity.get("elev_low"))),
         "6767": round_or_none(meters_to_feet(activity.get("elev_high"))),
-        "3350": celsius_to_fahrenheit(activity.get("average_temp"))
+        "3350": celsius_to_fahrenheit(activity.get("average_temp")),
+        "25a0": str(activity.get("id"))  # Strava Activity ID for duplicate detection
     }
     # Convert all non-None values to strings (Fulcrum expects string values)
     form_values = {k: str(v) for k, v in form_values.items() if v is not None}

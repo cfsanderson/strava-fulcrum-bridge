@@ -92,17 +92,110 @@ def fetch_recent_activities(count=1, before=None, after=None, page=1, per_page=3
 
 def activity_exists_in_fulcrum(activity_id):
     """Check if an activity already exists in Fulcrum.
-    
+
     Args:
         activity_id: Strava activity ID to check
-        
+
     Returns:
         bool: True if activity exists, False otherwise
     """
-    # TODO: Implement this function based on your Fulcrum schema
-    # You'll need to query your Fulcrum form to check if the activity ID exists
-    # For now, we'll return False to always assume activities don't exist
-    return False
+    try:
+        api_token = os.environ.get("FULCRUM_API_TOKEN")
+        form_id = os.environ.get("FULCRUM_FORM_ID")
+
+        if not api_token or not form_id:
+            print("Warning: Missing Fulcrum credentials, skipping duplicate check")
+            return False
+
+        # Query Fulcrum API to check if record with this activity_id exists
+        headers = {
+            "Accept": "application/json",
+            "X-ApiToken": api_token
+        }
+
+        # Use the form_id filter to only search this specific form
+        params = {
+            "form_id": form_id,
+            "per_page": 1  # We only need to know if at least one exists
+        }
+
+        url = "https://api.fulcrumapp.com/api/v2/records.json"
+        response = requests.get(url, headers=headers, params=params)
+
+        if response.status_code != 200:
+            print(f"Warning: Error checking Fulcrum for duplicates: {response.status_code}")
+            return False
+
+        records = response.json().get("records", [])
+
+        # Check if any record has this activity_id in the strava_activity_id field (key: 25a0)
+        for record in records:
+            form_values = record.get("form_values", {})
+            if form_values.get("25a0") == str(activity_id):
+                return True
+
+        # If no match found in first page, we need to search all records
+        # This is a more thorough check but requires pagination
+        return check_all_fulcrum_records(activity_id, api_token, form_id)
+
+    except Exception as e:
+        print(f"Warning: Error checking for duplicates in Fulcrum: {str(e)}")
+        return False
+
+def check_all_fulcrum_records(activity_id, api_token, form_id):
+    """Check all Fulcrum records for the given activity ID (with pagination).
+
+    Args:
+        activity_id: Strava activity ID to check
+        api_token: Fulcrum API token
+        form_id: Fulcrum form ID
+
+    Returns:
+        bool: True if activity exists, False otherwise
+    """
+    try:
+        headers = {
+            "Accept": "application/json",
+            "X-ApiToken": api_token
+        }
+
+        page = 1
+        per_page = 100  # Max per page
+
+        while True:
+            params = {
+                "form_id": form_id,
+                "page": page,
+                "per_page": per_page
+            }
+
+            url = "https://api.fulcrumapp.com/api/v2/records.json"
+            response = requests.get(url, headers=headers, params=params)
+
+            if response.status_code != 200:
+                print(f"Warning: Error checking Fulcrum page {page}: {response.status_code}")
+                return False
+
+            data = response.json()
+            records = data.get("records", [])
+
+            # Check this page for the activity_id
+            for record in records:
+                form_values = record.get("form_values", {})
+                if form_values.get("25a0") == str(activity_id):
+                    return True
+
+            # If we got fewer records than per_page, we've reached the end
+            if len(records) < per_page:
+                break
+
+            page += 1
+
+        return False
+
+    except Exception as e:
+        print(f"Warning: Error during paginated check: {str(e)}")
+        return False
 
 def sync_activities(count=1, days_back=30):
     """Sync recent activities to Fulcrum.
