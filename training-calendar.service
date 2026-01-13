@@ -1,0 +1,21 @@
+[Unit]
+Description=Training Calendar HTTP Server
+Documentation=https://github.com/cfsanderson/strava-fulcrum-bridge
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/strava-fulcrum-bridge
+ExecStart=/home/pi/strava-fulcrum-bridge/run_calendar_server.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security options
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

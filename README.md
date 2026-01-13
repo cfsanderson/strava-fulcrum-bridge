@@ -398,7 +398,7 @@ To work around this limitation, an automatic hourly sync has been configured usi
 **Cron Job Configuration:**
 ```bash
 # Syncs the most recent activity every hour
-0 * * * * cd /home/caleb/Projects/strava-fulcrum-bridge && /home/caleb/Projects/strava-fulcrum-bridge/venv/bin/python3 sync_activities.py 1 --days 1 >> /home/caleb/Projects/strava-fulcrum-bridge/sync_cron.log 2>&1
+0 * * * * cd /home/pi/strava-fulcrum-bridge && /home/pi/strava-fulcrum-bridge/venv/bin/python3 sync_activities.py 1 --days 1 >> /home/pi/strava-fulcrum-bridge/sync_cron.log 2>&1
 ```
 
 **What it does:**
@@ -443,6 +443,78 @@ If you open a new SSH session and `stravasync` is not recognized:
 ```bash
 source ~/.bashrc
 ```
+
+## Training Calendar Integration
+
+In addition to syncing activities to Fulcrum, this application can generate and serve a subscribable iCalendar (.ics) file that combines your planned training workouts with completed Strava activities. This allows you to view your training plan and actual workouts in Apple Calendar, Google Calendar, or any calendar app that supports .ics subscriptions.
+
+### Features
+
+- **Planned Workouts**: Import your training plan from CSV and view scheduled workouts
+- **Completed Activities**: Automatically match Strava activities with planned workouts
+- **Real-time Stats**: See actual pace, heart rate, elevation, and duration for completed workouts
+- **Extra Credit Tracking**: Unplanned workouts appear with a special indicator
+- **Automatic Updates**: Calendar regenerates after each activity sync
+
+### Quick Setup
+
+1. **Import Your Training Plan:**
+   ```bash
+   cd ~/strava-fulcrum-bridge
+   source venv/bin/activate
+   python3 training_calendar/import_plan.py your_training_plan.csv
+   ```
+
+2. **Install the Calendar Server Service:**
+   ```bash
+   sudo cp training-calendar.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable training-calendar.service
+   sudo systemctl start training-calendar.service
+   ```
+
+3. **Subscribe in Your Calendar App:**
+   - iPhone/iPad: Settings → [Your Name] → iCloud → Calendar → Add Subscription
+   - Mac: Calendar app → File → New Calendar Subscription
+   - URL: `http://YOUR_PI_IP:8080/training_calendar.ics`
+   - Or use: `http://raspberrypi.local:8080/training_calendar.ics`
+   - Set refresh frequency to "Every hour"
+
+### Calendar Event Types
+
+- 🏃 **Planned Run** - Not yet completed
+- 💪 **Planned Strength** - Not yet completed
+- ✅ **Completed Workout** - Synced from Strava with actual stats
+- ⭐ **Extra Credit** - Unplanned workout completed
+- 🛌 **Rest Day** - All-day rest event
+
+### Detailed Documentation
+
+For complete setup instructions, troubleshooting, and advanced usage:
+- **Full Guide**: See `CALENDAR_SETUP.md`
+- **Quick Reference**: See `CALENDAR_QUICKREF.md`
+
+### How It Works
+
+1. You import your training plan CSV (dates, workout types, distances, notes)
+2. The plan is stored in a SQLite database
+3. When activities sync from Strava, they're matched with planned workouts
+4. The calendar file (.ics) is regenerated with updated completion status
+5. Your subscribed devices refresh hourly and show the updates
+
+### Training Plan CSV Format
+
+Your CSV should have these columns:
+- `Week` - Training week number
+- `Date` - MM-DD format
+- `Day` - Day abbreviation (M, T, W, R, F, Sa, Su)
+- `Workout Type` - Run, Burn Bootcamp, Rest, etc.
+- `Details` - Workout description (e.g., "Easy trail run - Zone 2 HR")
+- `Duration` - Planned duration (e.g., "30-35min", "60min")
+- `Distance (mi)` - Planned distance in miles
+- `Notes` - Additional notes or comments
+
+See the `training_calendar/` directory for example files and scripts.
 
 ## Server Management & Maintenance
 
@@ -502,7 +574,7 @@ If you've made changes to the application code in your Git repository (or if you
 1.  **SSH into your Raspberry Pi.**
 2.  **Navigate to the project directory:**
     ```bash
-    cd /home/caleb/Projects/strava-fulcrum-bridge # Or your project path
+    cd ~/strava-fulcrum-bridge # Or your project path
     ```
 3.  **(Optional) Stop the service before updating (good practice):**
     ```bash
@@ -591,7 +663,7 @@ If the automatic hourly sync isn't working:
     ```bash
     crontab -l
     ```
-    - Verify the cron job includes `cd /home/caleb/Projects/strava-fulcrum-bridge &&` before the python command
+    - Verify the cron job includes `cd ~/strava-fulcrum-bridge &&` before the python command
     - The path should change to the project directory before running
 
 2.  **Check cron logs:**

@@ -5,3 +5,8 @@ __pycache__/
 .env
 venv/
 *.log
+
+# Training calendar data (PII)
+*training_plan.csv
+training_calendar/training_plan.db
+training_calendar/training_calendar.ics

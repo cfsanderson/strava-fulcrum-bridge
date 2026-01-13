@@ -31,6 +31,14 @@ This file provides guidance to Claude Code (claude.ai/code) and other developers
    - `quickstart.sh` - Development testing script
    - `strava-auth.sh` - Webhook subscription registration
 
+4. **Training Calendar Module** (`training_calendar/`)
+   - `import_plan.py` - Import training plan CSV into SQLite database
+   - `generator.py` - Generate iCalendar (.ics) file from planned + completed workouts
+   - `activity_sync.py` - Sync Strava activities to calendar database
+   - `server.py` - HTTP server to serve calendar file for subscription (port 8080)
+   - `training_plan.db` - SQLite database storing planned workouts and completed activities
+   - `training_calendar.ics` - Generated iCalendar file
+
 ### Data Flow
 
 ```
@@ -46,7 +54,14 @@ Strava API (fetch activity details)
     ↓
 Transform (polyline → GeoJSON, metric → imperial)
     ↓
-Fulcrum API (create record)
+    ├─→ Fulcrum API (create record)
+    └─→ Training Calendar DB (match + store)
+         ↓
+         Regenerate .ics file
+         ↓
+         HTTP Server (port 8080)
+         ↓
+         Calendar Apps (iPhone, Mac, etc.)
 ```
 
 ## Critical Limitation: Garmin Connect and Webhooks
@@ -70,8 +85,8 @@ Fulcrum API (create record)
 A cron job runs every hour to sync the most recent activity:
 
 ```bash
-# Crontab entry
-0 * * * * cd /home/caleb/Projects/strava-fulcrum-bridge && /home/caleb/Projects/strava-fulcrum-bridge/venv/bin/python3 sync_activities.py 1 --days 1 >> /home/caleb/Projects/strava-fulcrum-bridge/sync_cron.log 2>&1
+# Crontab entry (adjust paths for your username)
+0 * * * * cd ~/strava-fulcrum-bridge && ~/strava-fulcrum-bridge/venv/bin/python3 sync_activities.py 1 --days 1 >> ~/strava-fulcrum-bridge/sync_cron.log 2>&1
 ```
 
 **Log file**: `sync_cron.log` in project directory
@@ -196,6 +211,49 @@ curl "https://www.strava.com/api/v3/push_subscriptions?client_id=YOUR_CLIENT_ID&
 # Delete webhook (replace SUBSCRIPTION_ID)
 curl -X DELETE "https://www.strava.com/api/v3/push_subscriptions/SUBSCRIPTION_ID?client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET"
 ```
+
+### Training Calendar Management
+
+```bash
+# Import training plan from CSV
+source venv/bin/activate
+python3 training_calendar/import_plan.py your_training_plan.csv
+
+# Manually regenerate calendar
+python3 training_calendar/generator.py
+
+# View database contents
+sqlite3 training_calendar/training_plan.db "SELECT date, workout_type, distance_miles FROM planned_workouts LIMIT 10;"
+sqlite3 training_calendar/training_plan.db "SELECT date, activity_type, distance_miles, avg_pace FROM completed_activities;"
+
+# Check calendar server status
+sudo systemctl status training-calendar.service
+sudo journalctl -u training-calendar.service -f
+
+# Restart calendar server
+sudo systemctl restart training-calendar.service
+
+# Test calendar URL
+curl http://localhost:8080/training_calendar.ics | head -20
+```
+
+**Calendar Server Setup:**
+1. Install service: `sudo cp training-calendar.service /etc/systemd/system/`
+2. Enable: `sudo systemctl enable training-calendar.service`
+3. Start: `sudo systemctl start training-calendar.service`
+4. Subscribe in calendar app: `http://YOUR_PI_IP:8080/training_calendar.ics`
+
+**How Calendar Sync Works:**
+- `sync_activities.py` calls `training_calendar.activity_sync.sync_from_strava()` after successful Fulcrum sync
+- Activity is matched with planned workout by date and type
+- Calendar database is updated
+- .ics file is regenerated
+- Subscribed devices refresh hourly
+
+**Calendar CSV Format:**
+Required columns: `Week`, `Date` (MM-DD), `Day`, `Workout Type`, `Details`, `Duration`, `Distance (mi)`, `Notes`
+
+See `CALENDAR_SETUP.md` for complete documentation.
 
 ## Code Structure
 
@@ -358,42 +416,64 @@ When making changes:
 
 ### Application Files
 - `strava_webhook.py` - Main Flask application
-- `sync_activities.py` - Manual sync CLI tool
+- `sync_activities.py` - Manual sync CLI tool (now includes calendar sync)
 - `test_basic.py` - Basic tests
+
+### Training Calendar Module
+- `training_calendar/__init__.py` - Package initialization
+- `training_calendar/import_plan.py` - Import training plan CSV
+- `training_calendar/generator.py` - Generate iCalendar file
+- `training_calendar/activity_sync.py` - Sync activities to calendar DB
+- `training_calendar/server.py` - HTTP server for calendar subscription
+- `training_calendar/training_plan.db` - SQLite database (gitignored)
+- `training_calendar/training_calendar.ics` - Generated calendar (gitignored)
 
 ### Configuration Files
 - `.env` - Environment variables (secrets, API keys)
 - `.strava-tokens.json` - OAuth tokens (auto-generated, auto-refreshed)
 - `requirements.txt` - Python dependencies
+- `.gitignore` - Excludes secrets, tokens, logs, calendar data
 
 ### Scripts
-- `run_gunicorn_service.sh` - Systemd service wrapper
+- `run_gunicorn_service.sh` - Systemd service wrapper for Strava bridge
+- `run_calendar_server.sh` - Systemd service wrapper for calendar server
 - `strava_sync.sh` - Manual sync wrapper (bash alias)
 - `quickstart.sh` - Development testing script
 - `strava-auth.sh` - Webhook registration helper
 - `strava-api.sh` - API testing helper
 
+### Systemd Services
+- `strava-bridge.service` - Main application service (port 8000)
+- `training-calendar.service` - Calendar HTTP server (port 8080)
+
 ### Documentation
 - `README.md` - Complete setup guide
 - `CLAUDE.md` - This file (development guide)
+- `CALENDAR_SETUP.md` - Training calendar setup and troubleshooting
+- `CALENDAR_QUICKREF.md` - Quick reference for calendar operations
 - `.env.example` - Example environment configuration
 - `run_fulcrum_app_builder.fulcrumapp` - Template Fulcrum form
 
 ### Logs
 - `sync_cron.log` - Automatic hourly sync logs
 - `strava-bridge.log` - Application logs (if logging to file)
-- System logs: `sudo journalctl -u strava-bridge.service`
+- System logs:
+  - `sudo journalctl -u strava-bridge.service`
+  - `sudo journalctl -u training-calendar.service`
 
 ## Dependencies
 
 From `requirements.txt`:
 ```
-Flask
+flask
 requests
 polyline
-python-dotenv
+gpxpy
 gunicorn
+python-dotenv
 inquirer
+icalendar        # For training calendar
+pytz             # For training calendar timezone support
 ```
 
 Optional for development:
@@ -401,16 +481,24 @@ Optional for development:
 pytest  # For running tests
 ```
 
+Database:
+```
+sqlite3  # Built into Python, used by training calendar
+```
+
 ## Future Improvements
 
-- [ ] Add duplicate detection to avoid re-syncing existing activities
+- [x] Add duplicate detection to avoid re-syncing existing activities (COMPLETED)
+- [x] Add activity_id to Fulcrum records for better duplicate checking (COMPLETED)
+- [x] Training calendar integration with iCalendar support (COMPLETED)
 - [ ] Implement HTTPS/SSL via reverse proxy (Nginx/Caddy)
-- [ ] Add activity_id to Fulcrum records for better duplicate checking
-- [ ] Create web UI for viewing sync status
+- [ ] Create web UI for viewing sync status and calendar
 - [ ] Add support for other activity sources beyond Garmin/Strava
 - [ ] Implement proper logging with rotation
 - [ ] Add Prometheus metrics for monitoring
 - [ ] Support multiple Fulcrum forms (per activity type)
+- [ ] Auto-detect workout type mismatches (planned vs actual)
+- [ ] Weekly training summary emails
 
 ## Support & Resources
 
@@ -422,4 +510,4 @@ pytest  # For running tests
 
 ## Last Updated
 
-January 10, 2026 - Added documentation for automatic sync workaround for Garmin Connect limitation
+January 12, 2026 - Added training calendar integration with iCalendar support, HTTP server for calendar subscription, and automatic activity matching with planned workouts

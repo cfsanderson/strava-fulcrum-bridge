@@ -3,3 +3,7 @@ requests
 polyline
 gpxpy
 gunicorn
+python-dotenv
+inquirer
+icalendar
+pytz
