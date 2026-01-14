@@ -5,9 +5,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/strava-fulcrum-bridge
-ExecStart=/home/pi/strava-fulcrum-bridge/run_calendar_server.sh
+User=%USER%
+WorkingDirectory=%HOME%/Projects/strava-fulcrum-bridge
+ExecStart=%HOME%/Projects/strava-fulcrum-bridge/run_calendar_server.sh
 Restart=always
 RestartSec=10
 StandardOutput=journal

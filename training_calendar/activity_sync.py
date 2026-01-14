@@ -134,14 +134,14 @@ if __name__ == '__main__':
     print("Testing activity sync with sample data...")
 
     test_activity = {
-        'id': 17017838489,
-        'start_date_local': '2026-01-11T16:49:20Z',
+        'id': 12345678900,
+        'start_date_local': '2026-01-15T06:30:00Z',
         'type': 'Run',
-        'distance': 8160.7,  # 5.07 miles
-        'moving_time': 3590,  # 59:50
-        'average_heartrate': 149,
-        'max_heartrate': 164,
-        'total_elevation_gain': 148.1  # 486 feet
+        'distance': 8046.72,  # 5.0 miles
+        'moving_time': 3000,  # 50:00
+        'average_heartrate': 150,
+        'max_heartrate': 165,
+        'total_elevation_gain': 152.4  # 500 feet
     }
 
     sync = ActivitySync()
