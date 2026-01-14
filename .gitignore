@@ -10,3 +10,4 @@ venv/
 *training_plan.csv
 training_calendar/training_plan.db
 training_calendar/training_calendar.ics
+SECURITY.md
