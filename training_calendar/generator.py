@@ -52,7 +52,8 @@ class CalendarGenerator:
                 ca.avg_hr,
                 ca.max_hr,
                 ca.elevation_gain_ft,
-                ca.strava_url
+                ca.strava_url,
+                ca.start_time as actual_start_time
             FROM planned_workouts pw
             LEFT JOIN completed_activities ca ON pw.id = ca.planned_workout_id
             ORDER BY pw.date
@@ -60,12 +61,22 @@ class CalendarGenerator:
 
         planned_count = 0
         completed_count = 0
+        today = date.today()
 
         for row in cursor.fetchall():
+            # Skip past incomplete workouts (hide planned workouts that weren't done)
+            workout_date = datetime.strptime(row[1], '%Y-%m-%d').date()
+            is_completed = row[8] is not None  # activity_id
+            is_rest_day = row[2] == 'Rest'
+
+            # Hide past incomplete workouts (except rest days which are always shown)
+            if workout_date < today and not is_completed and not is_rest_day:
+                continue
+
             event = self._create_event(row)
             cal.add_component(event)
             planned_count += 1
-            if row[8] is not None:  # activity_id
+            if is_completed:
                 completed_count += 1
 
         # Add unmatched activities (extra credit workouts)
@@ -80,7 +91,8 @@ class CalendarGenerator:
                 avg_hr,
                 max_hr,
                 elevation_gain_ft,
-                strava_url
+                strava_url,
+                start_time
             FROM completed_activities
             WHERE planned_workout_id IS NULL
             ORDER BY date
@@ -112,7 +124,7 @@ class CalendarGenerator:
         """Create iCalendar event from planned workout with optional completed data."""
         (workout_id, date_str, workout_type, details, duration_mins,
          distance_miles, notes, start_time, activity_id, actual_distance,
-         actual_duration, avg_pace, avg_hr, max_hr, elevation_gain, strava_url) = row
+         actual_duration, avg_pace, avg_hr, max_hr, elevation_gain, strava_url, actual_start_time) = row
 
         event = Event()
 
@@ -140,11 +152,13 @@ class CalendarGenerator:
 
         else:
             # Timed workout event
-            start_hour, start_min, _ = map(int, start_time.split(':'))
-            start_dt = datetime.combine(workout_date, datetime.min.time().replace(hour=start_hour, minute=start_min))
+            # Use actual start time if completed, otherwise use planned start time
+            time_to_use = actual_start_time if is_completed and actual_start_time else start_time
+            start_hour, start_min, start_sec = map(int, time_to_use.split(':'))
+            start_dt = datetime.combine(workout_date, datetime.min.time().replace(hour=start_hour, minute=start_min, second=start_sec))
             start_dt = self.timezone.localize(start_dt)
 
-            # Calculate end time
+            # Calculate end time (always use actual duration if completed)
             end_mins = actual_duration if is_completed else (duration_mins or 60)
             end_dt = start_dt + timedelta(minutes=end_mins)
 
@@ -196,15 +210,20 @@ class CalendarGenerator:
     def _create_unmatched_event(self, row):
         """Create event for unmatched activity (extra credit workout)."""
         (activity_id, date_str, activity_type, distance_miles, duration_minutes,
-         avg_pace, avg_hr, max_hr, elevation_gain, strava_url) = row
+         avg_pace, avg_hr, max_hr, elevation_gain, strava_url, start_time) = row
 
         event = Event()
 
         # Parse date
         workout_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-        # Create timed event (assume 6:30 AM if no better info)
-        start_dt = datetime.combine(workout_date, datetime.min.time().replace(hour=6, minute=30))
+        # Create timed event using actual start time (default to 6:30 AM if not available)
+        if start_time:
+            start_hour, start_min, start_sec = map(int, start_time.split(':'))
+        else:
+            start_hour, start_min, start_sec = 6, 30, 0
+
+        start_dt = datetime.combine(workout_date, datetime.min.time().replace(hour=start_hour, minute=start_min, second=start_sec))
         start_dt = self.timezone.localize(start_dt)
         end_dt = start_dt + timedelta(minutes=duration_minutes if duration_minutes else 60)
 

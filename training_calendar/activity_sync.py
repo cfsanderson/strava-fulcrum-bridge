@@ -41,7 +41,9 @@ class ActivitySync:
 
         # Use start_date_local for accurate date matching
         start_date_str = activity_data.get('start_date_local') or activity_data.get('start_date')
-        activity_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00')).date()
+        activity_datetime = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+        activity_date = activity_datetime.date()
+        activity_start_time = activity_datetime.strftime('%H:%M:%S')  # Extract time as HH:MM:SS
         activity_type = activity_data['type']
 
         # Convert units
@@ -75,8 +77,8 @@ class ActivitySync:
             INSERT OR REPLACE INTO completed_activities
             (id, planned_workout_id, date, activity_type, distance_miles,
              duration_minutes, avg_pace, avg_hr, max_hr, elevation_gain_ft,
-             strava_url, synced_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             strava_url, start_time, synced_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             activity_id,
             planned_workout_id,
@@ -89,6 +91,7 @@ class ActivitySync:
             activity_data.get('max_heartrate'),
             int(elevation_ft) if elevation_ft > 0 else None,
             f"https://www.strava.com/activities/{activity_id}",
+            activity_start_time,
             datetime.now()
         ))
 
