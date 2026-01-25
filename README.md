@@ -655,6 +655,17 @@ If you're seeing duplicate activities being created in Fulcrum:
     sudo systemctl restart strava-bridge.service
     ```
 
+**Note about Strava Webhook Behavior:**
+
+Strava sometimes sends duplicate "create" webhooks for the same activity, typically within a few minutes of each other. As of January 2026, the webhook handler now includes duplicate detection that automatically checks if an activity already exists in Fulcrum before creating a new record. This prevents duplicate records even when Strava sends multiple webhooks for the same activity.
+
+If you see the following message in your service logs, it means the duplicate detection is working correctly:
+```
+Activity {id} already exists in Fulcrum - skipping duplicate webhook
+```
+
+This behavior is normal and expected - the application is correctly preventing duplicates from Strava's webhook system.
+
 ### Cron Job Not Running
 
 If the automatic hourly sync isn't working:
