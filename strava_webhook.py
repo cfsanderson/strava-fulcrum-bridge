@@ -250,6 +250,69 @@ def build_fulcrum_payload(activity, geojson):
 def read_fulcrum_token():
     return os.environ.get("FULCRUM_API_TOKEN")
 
+def activity_exists_in_fulcrum(activity_id):
+    """Check if an activity already exists in Fulcrum.
+
+    Args:
+        activity_id: Strava activity ID to check
+
+    Returns:
+        bool: True if activity exists, False otherwise
+    """
+    try:
+        api_token = os.environ.get("FULCRUM_API_TOKEN")
+        form_id = os.environ.get("FULCRUM_FORM_ID")
+
+        if not api_token or not form_id:
+            print("Warning: Missing Fulcrum credentials, skipping duplicate check")
+            return False
+
+        # Query Fulcrum API to check if record with this activity_id exists
+        headers = {
+            "Accept": "application/json",
+            "X-ApiToken": api_token
+        }
+
+        # Use the form_id filter to only search this specific form
+        # We'll check all records by paginating through them
+        page = 1
+        per_page = 100  # Max per page
+
+        while True:
+            params = {
+                "form_id": form_id,
+                "page": page,
+                "per_page": per_page
+            }
+
+            url = "https://api.fulcrumapp.com/api/v2/records.json"
+            response = requests.get(url, headers=headers, params=params)
+
+            if response.status_code != 200:
+                print(f"Warning: Error checking Fulcrum page {page}: {response.status_code}")
+                return False
+
+            data = response.json()
+            records = data.get("records", [])
+
+            # Check this page for the activity_id
+            for record in records:
+                form_values = record.get("form_values", {})
+                if form_values.get("25a0") == str(activity_id):
+                    return True
+
+            # If we got fewer records than per_page, we've reached the end
+            if len(records) < per_page:
+                break
+
+            page += 1
+
+        return False
+
+    except Exception as e:
+        print(f"Warning: Error checking for duplicates in Fulcrum: {str(e)}")
+        return False
+
 def create_fulcrum_record(payload, form_id):
     api_token = read_fulcrum_token()
     url = "https://api.fulcrumapp.com/api/v2/records.json"
@@ -294,6 +357,12 @@ def strava_webhook():
         if event['object_type'] == 'activity' and event['aspect_type'] == 'create':
             activity_id = event['object_id']
             print(f"Fetching details for activity ID: {activity_id}")
+
+            # Check if this activity already exists in Fulcrum to prevent duplicates
+            if activity_exists_in_fulcrum(activity_id):
+                print(f"Activity {activity_id} already exists in Fulcrum - skipping duplicate webhook")
+                return '', 200
+
             access_token = get_valid_access_token()
             activity = fetch_activity(activity_id, access_token)
             if activity:
