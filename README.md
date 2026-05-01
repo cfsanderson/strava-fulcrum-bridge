@@ -444,6 +444,50 @@ If you open a new SSH session and `stravasync` is not recognized:
 source ~/.bashrc
 ```
 
+## Fetching Raw Strava Data for Form Design
+
+If you want to redesign your Fulcrum form or explore what data is available from the Strava API, you can use the `fetch_raw_strava_data.py` script to export raw JSON data.
+
+### Usage
+
+```bash
+source venv/bin/activate
+python3 fetch_raw_strava_data.py
+```
+
+### What It Does
+
+1. Fetches up to 30 activities from the last 30 days (summary data)
+2. Fetches detailed data for the 5 most recent activities
+3. Saves everything to `/home/caleb/Projects/files/strava_raw_data.json`
+
+### Output
+
+The script generates a comprehensive JSON file containing:
+- **Activity summaries**: List of recent activities with basic info
+- **Detailed activities**: Full API response for 5 recent activities with all available fields
+- **API documentation**: Links to Strava API reference
+
+### Use Cases
+
+- **Form Design**: Review all available Strava fields to decide what to capture in Fulcrum
+- **API Exploration**: Understand the structure of Strava API responses
+- **Field Discovery**: Find fields you might not be using (e.g., `average_cadence`, `device_name`, `sport_type`, `kudos_count`)
+- **Debugging**: Compare raw API data with what's being sent to Fulcrum
+
+### Available Fields
+
+The Strava API provides 200+ fields including:
+- Performance metrics: speed, cadence, power, temperature
+- Heart rate data: average, max, zones
+- Elevation data: gain, high/low points, grade
+- GPS data: polylines, start/end coordinates, laps, splits
+- Activity metadata: device name, sport type, workout type
+- Social data: kudos count, comments, achievement count
+- Segment data: efforts, PR achievements
+
+Review the generated JSON file to see all available fields and their sample values.
+
 ## Training Calendar Integration
 
 In addition to syncing activities to Fulcrum, this application can generate and serve a subscribable iCalendar (.ics) file that combines your planned training workouts with completed Strava activities. This allows you to view your training plan and actual workouts in Apple Calendar, Google Calendar, or any calendar app that supports .ics subscriptions.
