@@ -1,8 +1,11 @@
 #!/bin/bash
 # Wrapper script to run Gunicorn for the Strava Fulcrum Bridge service
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Navigate to the project directory
-cd /home/caleb/Projects/strava-fulcrum-bridge
+cd "$SCRIPT_DIR"
 
 # Source environment variables from .env file
 if [ -f .env ]; then
@@ -23,10 +26,10 @@ if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
 fi
 
 # Activate virtual environment
-source /home/caleb/Projects/strava-fulcrum-bridge/venv/bin/activate
+source "$SCRIPT_DIR/venv/bin/activate"
 
 # Execute Gunicorn - use exec so Gunicorn replaces this script process
 # This allows systemd to correctly manage the Gunicorn process directly
-echo "[$(date)] Starting Gunicorn with PORT: $PORT" >> /tmp/strava-bridge-service.log
-exec /home/caleb/Projects/strava-fulcrum-bridge/venv/bin/gunicorn strava_webhook:app --bind 0.0.0.0:$PORT
+echo "[$(date)] Starting Gunicorn with PORT: $PORT (DUAL FORM MODE)" >> /tmp/strava-bridge-service.log
+exec "$SCRIPT_DIR/venv/bin/gunicorn" strava_webhook_dual_form:app --bind 0.0.0.0:$PORT
 
