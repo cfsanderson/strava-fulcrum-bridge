@@ -39,13 +39,6 @@ from strava_webhook import (
     create_fulcrum_record,
 )
 
-# Import calendar sync functionality
-try:
-    from training_calendar.activity_sync import sync_from_strava
-    CALENDAR_SYNC_AVAILABLE = True
-except ImportError:
-    CALENDAR_SYNC_AVAILABLE = False
-    print("Warning: Calendar sync not available. Install training_calendar module to enable.")
 
 def fetch_recent_activities(count=1, before=None, after=None, page=1, per_page=30):
     """Fetch recent activities from Strava.
@@ -223,16 +216,6 @@ def sync_activities(count=1, days_back=30):
     
     if not activities:
         print("No activities found to sync.")
-        # Still regenerate calendar to clean up old planned events
-        if CALENDAR_SYNC_AVAILABLE:
-            try:
-                from training_calendar.generator import CalendarGenerator
-                print("Regenerating calendar to clean up old planned events...")
-                generator = CalendarGenerator('training_calendar/training_plan.db')
-                generator.generate_calendar()
-                print("✓ Calendar regenerated")
-            except Exception as e:
-                print(f"⚠️  Calendar regeneration failed: {e}")
         return
     
     # Sort activities by date (newest first)
@@ -254,14 +237,6 @@ def sync_activities(count=1, days_back=30):
         if activity_exists_in_fulcrum(activity_id):
             print(f"  ✓ Already exists in Fulcrum - skipping")
             skipped_count += 1
-
-            # Still sync to calendar (might need to link to planned workout)
-            if CALENDAR_SYNC_AVAILABLE:
-                try:
-                    sync_from_strava(activity)
-                except Exception as e:
-                    print(f"  ⚠️  Calendar sync failed: {e}")
-
             continue
             
         try:
@@ -290,14 +265,6 @@ def sync_activities(count=1, days_back=30):
                 if response.status_code == 201:
                     print(f"  ✓ Successfully synced to Fulcrum")
                     synced_count += 1
-
-                    # Sync to calendar after successful Fulcrum sync
-                    if CALENDAR_SYNC_AVAILABLE:
-                        try:
-                            sync_from_strava(full_activity)
-                        except Exception as e:
-                            print(f"  ⚠️  Calendar sync failed: {e}")
-
                 else:
                     print(f"  ✗ Failed to sync to Fulcrum (Status: {response.status_code})")
                     if hasattr(response, 'text'):
@@ -318,18 +285,6 @@ def sync_activities(count=1, days_back=30):
     print(f"Skipped/duplicate: {skipped_count}")
     if synced_count == 0 and skipped_count > 0:
         print("\nNote: All activities were skipped. This might be because they already exist in Fulcrum.")
-
-    # Final calendar regeneration to ensure cleanup of old planned events
-    # (This runs even if all activities were skipped/failed)
-    if CALENDAR_SYNC_AVAILABLE and len(activities) > 0:
-        try:
-            from training_calendar.generator import CalendarGenerator
-            print("\nRegenerating calendar to ensure cleanup of old planned events...")
-            generator = CalendarGenerator('training_calendar/training_plan.db')
-            generator.generate_calendar()
-            print("✓ Calendar regenerated")
-        except Exception as e:
-            print(f"⚠️  Calendar regeneration failed: {e}")
 
 def select_activities(activities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Present an interactive menu to select activities."""
